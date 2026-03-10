@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { HardDrive, Plus, MoreHorizontal } from 'lucide-react';
 import { cn, formatDuration } from '@/lib/utils';
+import { PageHeader, Button, DataTable, type Column } from '@/components/ui';
 
 const nodes = [
     { id: 'node-1', status: 'healthy' as const, gpu: 'NVIDIA H100 SXM', region: 'US East', cpu: 42, memory: 58, gpuUtil: 78, uptimeSeconds: 864000, pods: 3 },
@@ -12,66 +13,59 @@ const nodes = [
     { id: 'node-5', status: 'healthy' as const, gpu: 'NVIDIA RTX 4090', region: 'US East', cpu: 55, memory: 62, gpuUtil: 71, uptimeSeconds: 604800, pods: 2 },
 ];
 
-const statusConfig: Record<string, { color: string; dot: string }> = {
-    healthy: { color: 'text-emerald-400', dot: 'bg-emerald-400' },
-    degraded: { color: 'text-amber-400', dot: 'bg-amber-400' },
-    offline: { color: 'text-red-400', dot: 'bg-red-400' },
-    provisioning: { color: 'text-blue-400', dot: 'bg-blue-400' },
-    draining: { color: 'text-amber-400', dot: 'bg-amber-400' },
-};
+type NodeRow = typeof nodes[number];
 
-function UtilBar({ value, color }: { value: number; color: string }) {
+const statusDot: Record<string, string> = { healthy: 'bg-success', degraded: 'bg-warning', offline: 'bg-destructive', provisioning: 'bg-info', draining: 'bg-warning' };
+
+function UtilBar({ value }: { value: number }) {
+    const color = value > 85 ? 'bg-destructive' : value > 65 ? 'bg-warning' : 'bg-primary';
     return (
-        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.8 }}
-                className={cn("h-full rounded-full", value > 80 ? 'bg-red-500' : value > 60 ? 'bg-amber-500' : `bg-${color}-500`)}
-                style={{ backgroundColor: value > 80 ? '#ef4444' : value > 60 ? '#f59e0b' : '#7c3aed' }}
-            />
+        <div className="w-20">
+            <div className="w-full h-1 bg-surface-3 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.7 }} className={cn('h-full rounded-full', color)} />
+            </div>
+            <span className="text-[10px] text-muted-foreground mt-0.5 block tabular-nums">{value}%</span>
         </div>
     );
 }
 
 export default function NodesPage() {
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div><h1 className="text-2xl font-bold">Nodes</h1><p className="text-sm text-zinc-400">Manage GPU compute nodes</p></div>
-                <button className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"><Plus className="w-4 h-4" /> Add Node</button>
-            </div>
+    const columns: Column<NodeRow>[] = [
+        {
+            key: 'node', header: 'Node',
+            render: (n) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-md bg-surface-2 flex items-center justify-center">
+                        <HardDrive className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                    <div>
+                        <p className="text-[13px] font-medium text-heading">{n.id}</p>
+                        <p className="text-xs text-muted-foreground">{n.region} · {n.pods} pods</p>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'status', header: 'Status',
+            render: (n) => (
+                <span className={cn('inline-flex items-center gap-1.5 text-[11px] text-secondary-foreground capitalize')}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', statusDot[n.status] || 'bg-muted-foreground')} />
+                    {n.status}
+                </span>
+            ),
+        },
+        { key: 'gpu', header: 'GPU', hideBelow: 'md', render: (n) => <span className="text-[13px] text-secondary-foreground">{n.gpu}</span> },
+        { key: 'cpu', header: 'CPU', hideBelow: 'lg', render: (n) => <UtilBar value={n.cpu} /> },
+        { key: 'memory', header: 'Memory', hideBelow: 'lg', render: (n) => <UtilBar value={n.memory} /> },
+        { key: 'gpuUtil', header: 'GPU Util', hideBelow: 'lg', render: (n) => <UtilBar value={n.gpuUtil} /> },
+        { key: 'uptime', header: 'Uptime', hideBelow: 'md', render: (n) => <span className="text-[13px] text-muted-foreground tabular-nums">{n.uptimeSeconds > 0 ? formatDuration(n.uptimeSeconds) : '—'}</span> },
+        { key: 'actions', header: '', className: 'text-right w-12', render: () => <button className="p-1.5 rounded-md hover:bg-surface-2 text-muted-foreground"><MoreHorizontal className="w-4 h-4" /></button> },
+    ];
 
-            <div className="bg-card border border-white/5 rounded-xl overflow-hidden">
-                <table className="w-full">
-                    <thead><tr className="border-b border-white/5">
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3">Node</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3">Status</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3 hidden md:table-cell">GPU</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3 hidden lg:table-cell">CPU</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3 hidden lg:table-cell">Memory</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3 hidden lg:table-cell">GPU Util</th>
-                        <th className="text-left text-xs text-zinc-500 font-medium px-5 py-3 hidden md:table-cell">Uptime</th>
-                        <th className="text-right text-xs text-zinc-500 font-medium px-5 py-3">Actions</th>
-                    </tr></thead>
-                    <tbody>
-                        {nodes.map((n, i) => {
-                            const sc = statusConfig[n.status];
-                            return (
-                                <motion.tr key={n.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                                    className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors"
-                                >
-                                    <td className="px-5 py-4"><div className="flex items-center gap-3"><HardDrive className="w-4 h-4 text-zinc-500" /><div><p className="text-sm font-medium">{n.id}</p><p className="text-xs text-zinc-600">{n.region} • {n.pods} pods</p></div></div></td>
-                                    <td className="px-5 py-4"><span className={cn("inline-flex items-center gap-1.5 text-[11px] capitalize", sc.color)}><span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />{n.status}</span></td>
-                                    <td className="px-5 py-4 text-sm text-zinc-400 hidden md:table-cell">{n.gpu}</td>
-                                    <td className="px-5 py-4 hidden lg:table-cell"><div className="w-20"><UtilBar value={n.cpu} color="purple" /><span className="text-[10px] text-zinc-500 mt-0.5 block">{n.cpu}%</span></div></td>
-                                    <td className="px-5 py-4 hidden lg:table-cell"><div className="w-20"><UtilBar value={n.memory} color="blue" /><span className="text-[10px] text-zinc-500 mt-0.5 block">{n.memory}%</span></div></td>
-                                    <td className="px-5 py-4 hidden lg:table-cell"><div className="w-20"><UtilBar value={n.gpuUtil} color="cyan" /><span className="text-[10px] text-zinc-500 mt-0.5 block">{n.gpuUtil}%</span></div></td>
-                                    <td className="px-5 py-4 text-sm text-zinc-400 hidden md:table-cell">{n.uptimeSeconds > 0 ? formatDuration(n.uptimeSeconds) : '—'}</td>
-                                    <td className="px-5 py-4 text-right"><button className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-500"><MoreHorizontal className="w-4 h-4" /></button></td>
-                                </motion.tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+    return (
+        <div className="space-y-5">
+            <PageHeader title="Nodes" description="Manage GPU compute nodes" action={<Button icon={<Plus />}>Add Node</Button>} />
+            <DataTable columns={columns} data={nodes} keyExtractor={n => n.id} />
         </div>
     );
 }

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutTemplate, Search, Brain, Zap, Globe, Code, MessageSquare, Image } from 'lucide-react';
+import { LayoutTemplate, Cpu, Search, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { seedTemplates } from '@/data/seed';
+import { Card, PageHeader, Input, FilterChips, Button } from '@/components/ui';
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = { Brain, Zap, Globe, Code, MessageSquare, Image };
-const categories = [{ value: 'all', label: 'All' }, { value: 'ml_training', label: 'ML Training' }, { value: 'inference', label: 'Inference' }, { value: 'development', label: 'Development' }, { value: 'web_scraping', label: 'Web Scraping' }];
+const iconMap: Record<string, string> = { '🦙': '🦙', '🎨': '🎨', '🗣️': '🗣️', '💬': '💬', '📝': '📝', '🔍': '🔍' };
 
 export default function TemplatesPage() {
     const [search, setSearch] = useState('');
@@ -19,44 +19,44 @@ export default function TemplatesPage() {
         return true;
     });
 
+    const categoryOptions = [
+        { value: 'all', label: 'All' },
+        { value: 'inference', label: 'Inference' },
+        { value: 'training', label: 'Training' },
+        { value: 'generation', label: 'Generation' },
+    ];
+
     return (
-        <div className="space-y-6">
-            <div><h1 className="text-2xl font-bold">Templates</h1><p className="text-sm text-zinc-400">Pre-built configurations for common ML workloads</p></div>
+        <div className="space-y-5">
+            <PageHeader title="Templates" description="Deploy pre-built ML workload configurations" />
 
             <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates..."
-                        className="w-full bg-card border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-purple-500/50 transition-all" />
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                    {categories.map(c => (
-                        <button key={c.value} onClick={() => setCategory(c.value)}
-                            className={cn("px-3 py-2 rounded-lg text-xs font-medium transition-all", category === c.value ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30' : 'bg-card border border-white/5 text-zinc-400 hover:text-white')}
-                        >{c.label}</button>
-                    ))}
-                </div>
+                <Input icon={<Search />} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…" className="flex-1" />
+                <FilterChips options={categoryOptions} value={category} onChange={setCategory} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((tpl, i) => {
-                    const Icon = iconMap[tpl.icon] || LayoutTemplate;
-                    return (
-                        <motion.div key={tpl.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                            className="bg-card border border-white/5 rounded-xl p-5 hover:border-purple-500/20 transition-all group"
-                        >
-                            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                                <Icon className="w-5 h-5 text-purple-400" />
+                {filtered.map((tmpl, i) => (
+                    <motion.div key={tmpl.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04, duration: 0.25 }}>
+                        <Card padding="none" className="group hover:border-border-strong transition-all duration-200">
+                            <div className="p-4">
+                                <div className="text-2xl mb-3">{tmpl.icon}</div>
+                                <h3 className="text-[14px] font-semibold text-heading mb-1">{tmpl.name}</h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed mb-3">{tmpl.description}</p>
+                                <div className="flex items-center gap-2">
+                                    <Cpu className="w-3 h-3 text-muted-foreground/50" />
+                                    <span className="text-[11px] text-muted-foreground">{tmpl.gpuRecommendation}</span>
+                                </div>
                             </div>
-                            <h3 className="font-semibold mb-1">{tpl.name}</h3>
-                            <p className="text-xs text-zinc-400 leading-relaxed mb-4">{tpl.description}</p>
-                            <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                <span className="text-xs text-zinc-500">{tpl.gpuRecommendation}</span>
-                                <button className="text-xs bg-purple-500/10 text-purple-400 px-3 py-1.5 rounded-lg hover:bg-purple-500/20 transition-colors">Use Template</button>
+                            <div className="border-t border-border px-4 py-2.5 flex items-center justify-between">
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{tmpl.category}</span>
+                                <Button variant="ghost" size="sm" iconRight={<ArrowRight />} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Use Template
+                                </Button>
                             </div>
-                        </motion.div>
-                    );
-                })}
+                        </Card>
+                    </motion.div>
+                ))}
             </div>
         </div>
     );
